@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hopeloop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="/static/styles.css?v=6" />
+  </head>
+  <body>
+    <div class="mesh mesh-a"></div>
+    <div class="mesh mesh-b"></div>
+    <div class="grain"></div>
+
+    <nav class="top-nav container">
+      <div class="brand">Hopeloop</div>
+      <div class="nav-links">
+        <a href="#overview">Overview</a>
+        <a href="#intake">Intake</a>
+        <a href="#allocation">Allocation</a>
+        <a href="#intelligence">Needs</a>
+        <a href="#mapView">Map</a>
+        <a href="#forecast">Forecast</a>
+        <a href="#alerts">Alerts</a>
+      </div>
+      <div id="geminiBadge" class="badge">Checking Gemini status...</div>
+    </nav>
+
+    <header class="hero container" id="overview">
+      <p class="eyebrow">Hopeloop Platform</p>
+      <h1>Helping People Faster With Smart Volunteer Support</h1>
+      <p class="lead">
+        Turn local reports into simple action tasks and match volunteers to where help is needed most.
+      </p>
+      <div class="hero-actions">
+        <button id="seedBtn" class="btn btn-warm">Seed Demo Data</button>
+        <button id="allocateNowBtn" class="btn">Allocate Now</button>
+          <select id="roleSelect" class="role-select">
+            <option value="coordinator">Coordinator View</option>
+            <option value="field">Field Ops View</option>
+            <option value="volunteer">Volunteer View</option>
+          </select>
+      </div>
+      <div class="hero-status">
+        <div id="lastRefresh" class="status-chip">Last update: waiting</div>
+        <div id="systemHealth" class="status-chip">System: checking</div>
+      </div>
+    </header>
+
+    <main class="container layout">
+      <section class="panel panel-span-8">
+        <div class="panel-head">
+          <h2>Live Impact Overview</h2>
+          <p>Quick view of what is happening</p>
+        </div>
+        <div class="metrics" id="metrics"></div>
+        <div id="hotspots" class="hotspots"></div>
+      </section>
+
+      <section class="panel panel-span-4">
+        <div class="panel-head">
+          <h2>Coordinator Shortcuts</h2>
+          <p>Quick actions</p>
+        </div>
+        <div class="shortcut-grid">
+          <button id="quickAllocate" class="tile-btn">Run allocation engine</button>
+          <button id="quickRefresh" class="tile-btn">Refresh intelligence</button>
+          <button id="quickScrollIntake" class="tile-btn">Jump to report intake</button>
+          <button id="quickScrollVolunteers" class="tile-btn">Jump to volunteers</button>
+        </div>
+        <div class="auto-refresh">
+          <input id="autoRefreshToggle" type="checkbox" />
+          <label for="autoRefreshToggle">Auto-refresh dashboard every 30s</label>
+        </div>
+        <div class="auto-refresh">
+          <label for="globalSearch">Quick Search</label>
+          <input id="globalSearch" placeholder="Search task, volunteer, or location" />
+        </div>
+      </section>
+
+      <section class="panel panel-span-8" id="intake">
+        <div class="panel-head">
+          <h2>Community Report Intake</h2>
+          <p>Add a report quickly</p>
+        </div>
+        <div class="template-row" id="reportTemplates">
+          <button class="template-chip" data-template="Water supply is disrupted in Ward 12. Families are walking long distances and urgent tanker distribution is needed.">Water shortage</button>
+          <button class="template-chip" data-template="Local school in Ward 9 has no active teaching support for 120 children. Immediate mentoring volunteers required.">School support</button>
+          <button class="template-chip" data-template="Health camp report from Ward 5 indicates increasing fever cases, elderly without transport, and medicine delivery delays.">Health alert</button>
+          <button class="template-chip" data-template="Food stock in community kitchen dropped below two days, with growing queues across nearby neighborhoods.">Food distribution</button>
+        </div>
+        <form id="reportForm" class="form-grid">
+          <label>Location
+            <input required name="location" placeholder="Ward 12" />
+          </label>
+          <label>Source
+            <select name="source_type">
+              <option value="field_report">Field Report</option>
+              <option value="paper_survey">Paper Survey</option>
+              <option value="helpline">Helpline</option>
+            </select>
+          </label>
+          <label class="wide">Report Text
+            <textarea id="reportText" required name="raw_text" rows="5" placeholder="Describe affected groups, urgency, and resource gaps..."></textarea>
+          </label>
+          <button class="btn wide" type="submit">Analyze and Create Response Task</button>
+        </form>
+      </section>
+
+      <section class="panel panel-span-4" id="allocation">
+        <div class="panel-head">
+          <h2>Allocation Engine</h2>
+          <p>Smart volunteer matching</p>
+        </div>
+        <div class="legend">
+          <div><span class="dot dot-a"></span>Skill overlap 45%</div>
+          <div><span class="dot dot-b"></span>Location fit 20%</div>
+          <div><span class="dot dot-c"></span>Availability 20%</div>
+          <div><span class="dot dot-d"></span>Urgency factor 15%</div>
+        </div>
+        <button id="allocateBtn" class="btn">Run Smart Allocation</button>
+        <pre id="allocationOutput" class="output">No allocation run yet.</pre>
+      </section>
+
+      <section class="panel panel-span-6" id="intelligence">
+        <div class="panel-head">
+          <h2>Urgent Needs</h2>
+          <p>Find urgent needs fast</p>
+        </div>
+        <div class="filters">
+          <input id="filterLocation" placeholder="Filter by location" />
+          <select id="filterCategory">
+            <option value="">All categories</option>
+          </select>
+          <input id="filterUrgency" type="range" min="0" max="100" value="50" />
+          <div id="urgencyValue" class="muted">Min urgency: 50</div>
+        </div>
+        <div id="needsList" class="list"></div>
+      </section>
+
+      <section class="panel panel-span-6">
+        <div class="panel-head">
+          <h2>Task Operations Board</h2>
+          <p>See task progress</p>
+        </div>
+        <div id="tasksList" class="list"></div>
+      </section>
+
+      <section class="panel panel-span-12" id="assignments">
+        <div class="panel-head">
+          <h2>Assignment Tracker</h2>
+          <p>Complete finished work in one click</p>
+        </div>
+        <div class="assignment-actions">
+          <button id="completeAllAssignmentsBtn" class="btn">Complete All Pending</button>
+          <input id="assignmentSearch" placeholder="Filter assignments by volunteer, task, or location" />
+        </div>
+        <div id="assignmentsList" class="list"></div>
+      </section>
+
+      <section class="panel panel-span-12" id="completedHistory">
+        <div class="panel-head">
+          <h2>Completed History</h2>
+          <p>Undo if something was marked complete by mistake</p>
+        </div>
+        <div class="history-grid">
+          <div>
+            <h3 class="item-title">Completed Assignments</h3>
+            <div id="completedAssignmentsList" class="list"></div>
+          </div>
+          <div>
+            <h3 class="item-title">Completed Tasks</h3>
+            <div id="completedTasksList" class="list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel-span-12" id="activity">
+        <div class="panel-head">
+          <h2>Activity Timeline</h2>
+          <p>Track who changed what and when</p>
+        </div>
+        <div id="activityList" class="list"></div>
+      </section>
+
+      <section class="panel panel-span-7" id="volunteers">
+        <div class="panel-head">
+          <h2>Volunteer Registration</h2>
+          <p>Add volunteer details</p>
+        </div>
+        <form id="volunteerForm" class="form-grid">
+          <label>Name
+            <input required name="name" />
+          </label>
+          <label>Email
+            <input required type="email" name="email" />
+          </label>
+          <label>Phone
+            <input name="phone" />
+          </label>
+          <label>Location
+            <input required name="location" placeholder="Ward 9" />
+          </label>
+          <label>Availability (hours/day)
+            <input name="availability_hours" type="number" min="1" max="12" value="4" />
+          </label>
+          <label>Skills (comma-separated)
+            <input name="skills" placeholder="first_aid, distribution, mentoring" />
+          </label>
+          <button class="btn wide" type="submit">Add Volunteer</button>
+        </form>
+      </section>
+
+      <section class="panel panel-span-5">
+        <div class="panel-head">
+          <h2>Volunteer Pool</h2>
+          <p>View volunteers by area</p>
+        </div>
+        <div id="volunteersList" class="list volunteers-scroll"></div>
+      </section>
+
+      <section class="panel panel-span-12">
+        <div class="panel-head">
+          <h2>Action Intelligence</h2>
+          <p>Simple next-step tips</p>
+        </div>
+        <ul id="insightsList" class="insights"></ul>
+      </section>
+
+      <section class="panel panel-span-12" id="rolePanel">
+        <div class="panel-head">
+          <h2>Role View</h2>
+          <p>Different view for each role</p>
+        </div>
+        <div id="roleCards" class="role-cards"></div>
+        <ul id="rolePriorities" class="insights"></ul>
+      </section>
+
+      <section class="panel panel-span-8" id="mapView">
+        <div class="panel-head">
+          <h2>Ward Pressure Map</h2>
+          <p>Map of where help is needed</p>
+        </div>
+        <div id="map" class="map"></div>
+        <p id="mapStatus" class="muted">Map loading...</p>
+      </section>
+
+      <section class="panel panel-span-4" id="forecast">
+        <div class="panel-head">
+          <h2>Future Need Estimate</h2>
+          <p>What needs may rise soon</p>
+        </div>
+        <div id="forecastList" class="forecast-list"></div>
+        <ul id="forecastInsights" class="insights"></ul>
+      </section>
+
+      <section class="panel panel-span-12" id="alerts">
+        <div class="panel-head">
+          <h2>Volunteer Alerts</h2>
+          <p>Send alerts to volunteers</p>
+        </div>
+        <form id="alertForm" class="form-grid alert-form">
+          <label>Channel
+            <select name="channel">
+              <option value="whatsapp">WhatsApp</option>
+              <option value="sms">SMS</option>
+            </select>
+          </label>
+          <label>Audience
+            <select name="audience" id="alertAudience">
+              <option value="all">All Volunteers</option>
+              <option value="unassigned">Only Unassigned</option>
+              <option value="location">Location-Specific</option>
+            </select>
+          </label>
+          <label id="locationScopeWrap">Location Scope
+            <input name="location_scope" placeholder="Ward 12" />
+          </label>
+          <label>Task ID (optional)
+            <input name="task_id" type="number" min="1" placeholder="23" />
+          </label>
+          <label class="wide">Message Content
+            <textarea name="content" rows="3" placeholder="Urgent staffing required for Ward 12 water distribution. Reply if available." required></textarea>
+          </label>
+          <button class="btn" type="submit">Queue Alert</button>
+          <button id="dispatchAlertsBtn" class="btn btn-warm" type="button">Dispatch Queued Alerts</button>
+        </form>
+        <div id="alertsList" class="list"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+    <div id="undoDock" class="undo-dock hidden">
+      <div>
+        <div id="undoLabel" class="undo-label">Action pending...</div>
+        <div id="undoTimer" class="muted">Finalizing in 10s</div>
+      </div>
+      <button id="undoLastBtn" class="btn-secondary" type="button">Undo Last</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/app.js?v=6"></script>
+  </body>
+</html>
